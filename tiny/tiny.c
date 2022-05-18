@@ -57,6 +57,7 @@ void doit(int fd)
   char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];//buf: 
   char filename[MAXLINE], cgiargs[MAXLINE];
   rio_t rio;
+  int http_method; //11.11 solution
 
   /*   Read request line and headers*/ 
   Rio_readinitb(&rio, fd);//rio주소와 fd 연결
@@ -70,7 +71,11 @@ void doit(int fd)
   //sscanf: buf 값을 %s%s%s로 읽어서 method uri version 저장한다.
   sscanf(buf, "%s %s %s", method, uri, version);
 
-  if (strcasecmp(method, "GET")){ //strcasecmp: 대소문자를 무시하는 문자열 비교 함수, get아니면 양수가 나와서 true값 실행, 같으면 0이나와서 False 
+  if (strcasecmp(method, "GET")== 0)
+      http_method = 0; //strcasecmp: 대소문자를 무시하는 문자열 비교 함수, get아니면 양수가 나와서 true값 실행, 같으면 0이나와서 False 
+  else if (strcasecmp(method, "HEAD") == 0)
+		http_method = 1;
+  else {
     clienterror(fd, method, "501", "Not implemented",
     "Tiny does not implement this method");
     return;
@@ -97,14 +102,14 @@ void doit(int fd)
     }
     // fd 목적값(fd에 계속 담아서 주고받음), 읽을값이 filename, sbuf.st_size- 사이즈, 
     //사이즈만큼 filename 읽어와서 fd담는다 
-    serve_static(fd, filename, sbuf.st_size);//serve static content
+    serve_static(fd, filename, sbuf.st_size, http_method);//serve static content
   }
   else { /* Serve dynamic content */ 
     if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) {
       clienterror(fd, filename, "403", "Forbidden", "Tiny couldn't run the CGI program");
       return;
     }
-    serve_dynamic(fd, filename, cgiargs); //serve dynamic static content
+    serve_dynamic(fd, filename, cgiargs, http_method); //serve dynamic static content
   }
 }
 
